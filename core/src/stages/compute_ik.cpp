@@ -283,17 +283,17 @@ void ComputeIK::compute()
 		ik_pose_msg = boost::any_cast<geometry_msgs::PoseStamped>(value);
 		Eigen::Affine3d ik_pose;
 		tf::poseMsgToEigen(ik_pose_msg.pose, ik_pose);
-		if (!(link = robot_model->getLinkModel(ik_pose_msg.header.frame_id))) {
+		/*if (!(link = robot_model->getLinkModel(ik_pose_msg.header.frame_id))) {
 			ROS_WARN_STREAM_NAMED("ComputeIK", "Unknown link: " << ik_pose_msg.header.frame_id);
 			return;
-		}
+		}*/
 		// transform target pose such that ik frame will reach there if link does
 		target_pose = target_pose * ik_pose.inverse();
 	}
 
 	// validate placed link for collisions
 	collision_detection::CollisionResult collisions;
-	bool colliding = !ignore_collisions && isTargetPoseColliding(sandbox_scene, target_pose, link, &collisions);
+	bool colliding = !ignore_collisions /*&& isTargetPoseColliding(sandbox_scene, target_pose, link, &collisions)*/;
 
 	robot_state::RobotState& sandbox_state = sandbox_scene->getCurrentStateNonConst();
 
@@ -308,7 +308,7 @@ void ComputeIK::compute()
 		marker.color.a *= 0.5;
 		failure_markers.push_back(marker);
 	};
-	const auto& link_to_visualize = moveit::core::RobotModel::getRigidlyConnectedParentLinkModel(link)
+	/*const auto& link_to_visualize = moveit::core::RobotModel::getRigidlyConnectedParentLinkModel(link)
 	                                ->getParentJointModel()->getDescendantLinkModels();
 	if (colliding) {
 		SubTrajectory solution;
@@ -320,7 +320,7 @@ void ComputeIK::compute()
 		spawn(InterfaceState(sandbox_scene), std::move(solution));
 		return;
 	} else
-		generateVisualMarkers(sandbox_state, appender, link_to_visualize);
+		generateVisualMarkers(sandbox_state, appender, link_to_visualize);*/
 
 
 	// determine joint values of robot pose to compare IK solution with for costs
@@ -360,7 +360,7 @@ void ComputeIK::compute()
 		tried_current_state_as_seed= true;
 
 		size_t previous = ik_solutions.size();
-		bool succeeded = sandbox_state.setFromIK(jmg, target_pose, link->getName(), 1, remaining_time, isValid);
+		bool succeeded = sandbox_state.setFromIK(jmg, target_pose, ik_pose_msg.header.frame_id, 1, remaining_time, isValid);
 
 		auto now = std::chrono::steady_clock::now();
 		remaining_time -= std::chrono::duration<double>(now - start_time).count();
