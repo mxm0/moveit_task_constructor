@@ -283,13 +283,13 @@ void ComputeIK::compute()
 		ik_pose_msg = boost::any_cast<geometry_msgs::PoseStamped>(value);
 		Eigen::Affine3d ik_pose;
 		tf::poseMsgToEigen(ik_pose_msg.pose, ik_pose);
-		if (!(link = robot_model->getLinkModel(ik_pose_msg.header.frame_id))) {
-			// ROS_WARN_STREAM_NAMED("ComputeIK", "Unknown link: " << ik_pose_msg.header.frame_id);
-
-			moveit_msgs::AttachedCollisionObject collision_object;
+		if (robot_model->hasLinkModel(ik_pose_msg.header.frame_id))
+			link = robot_model->getLinkModel(ik_pose_msg.header.frame_id);
+                else{
+			moveit_msgs::AttachedCollisionObject collision_object; 
 			sandbox_scene->getAttachedCollisionObjectMsg(collision_object, ik_pose_msg.header.frame_id);
-	    link = robot_model->getLinkModel(collision_object.link_name);
-		}
+			link = robot_model->getLinkModel(collision_object.link_name);
+                }
 		// transform target pose such that ik frame will reach there if link does
 		target_pose = target_pose * ik_pose.inverse();
 	}
