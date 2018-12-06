@@ -283,17 +283,20 @@ void ComputeIK::compute()
 		ik_pose_msg = boost::any_cast<geometry_msgs::PoseStamped>(value);
 		Eigen::Affine3d ik_pose;
 		tf::poseMsgToEigen(ik_pose_msg.pose, ik_pose);
-		/*if (!(link = robot_model->getLinkModel(ik_pose_msg.header.frame_id))) {
-			ROS_WARN_STREAM_NAMED("ComputeIK", "Unknown link: " << ik_pose_msg.header.frame_id);
-			return;
-		}*/
+		if (!(link = robot_model->getLinkModel(ik_pose_msg.header.frame_id))) {
+			// ROS_WARN_STREAM_NAMED("ComputeIK", "Unknown link: " << ik_pose_msg.header.frame_id);
+
+			moveit_msgs::AttachedCollisionObject collision_object;
+			sandbox_scene->getAttachedCollisionObjectMsg(collision_object, ik_pose_msg.header.frame_id);
+	    link = robot_model->getLinkModel(collision_object.link_name);
+		}
 		// transform target pose such that ik frame will reach there if link does
 		target_pose = target_pose * ik_pose.inverse();
 	}
 
 	// validate placed link for collisions
 	collision_detection::CollisionResult collisions;
-	bool colliding = !ignore_collisions /*&& isTargetPoseColliding(sandbox_scene, target_pose, link, &collisions)*/;
+	bool colliding = !ignore_collisions && isTargetPoseColliding(sandbox_scene, target_pose, link, &collisions);
 
 	robot_state::RobotState& sandbox_state = sandbox_scene->getCurrentStateNonConst();
 
@@ -308,7 +311,7 @@ void ComputeIK::compute()
 		marker.color.a *= 0.5;
 		failure_markers.push_back(marker);
 	};
-	/*const auto& link_to_visualize = moveit::core::RobotModel::getRigidlyConnectedParentLinkModel(link)
+	const auto& link_to_visualize = moveit::core::RobotModel::getRigidlyConnectedParentLinkModel(link)
 	                                ->getParentJointModel()->getDescendantLinkModels();
 	if (colliding) {
 		SubTrajectory solution;
@@ -320,7 +323,7 @@ void ComputeIK::compute()
 		spawn(InterfaceState(sandbox_scene), std::move(solution));
 		return;
 	} else
-		generateVisualMarkers(sandbox_state, appender, link_to_visualize);*/
+		generateVisualMarkers(sandbox_state, appender, link_to_visualize);
 
 
 	// determine joint values of robot pose to compare IK solution with for costs
